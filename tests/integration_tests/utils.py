@@ -1,13 +1,15 @@
 from subprocess import CalledProcessError, check_output
 
 
-def output_of(command, stderr=None):
+def output_of(command, stderr=None, cwd=None):
     """
 
     :param command:
     :return:
     """
     try:
-        return check_output(command, shell=True, stderr=stderr).decode("UTF-8")
+        return check_output(command, shell=True, stderr=stderr, cwd=cwd).decode(
+            "UTF-8"
+        )
     except CalledProcessError as exc:
         return exc.output.decode("UTF-8")

@@ -179,3 +179,8 @@ tests/testdata/mythril_config_inputs/config.ini
 
 # VSCode
 .vscode
+node_modules
+
+# Hardhat build output
+hardhat_attack_demo/artifacts
+hardhat_attack_demo/cache

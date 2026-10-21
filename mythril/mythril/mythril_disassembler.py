@@ -249,8 +249,10 @@ class MythrilDisassembler:
         address = util.get_indexed_address(0)
         contracts = []
         for file in solidity_files:
-            if ":" in file:
-                file, contract_name = file.split(":")
+            # rsplit so Windows drive letters ("C:\...") are not mistaken for a contract separator
+            head, sep, tail = file.rpartition(":")
+            if sep and head and "\\" not in tail and "/" not in tail:
+                file, contract_name = head, tail
             else:
                 contract_name = None
 

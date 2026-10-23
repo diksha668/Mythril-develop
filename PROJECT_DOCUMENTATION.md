@@ -131,8 +131,8 @@ representing a different point on the reentrancy-safety spectrum:
 | File (dependency-free, analyzed by Mythril) | Behavior |
 |---|---|
 | `solidity_examples/etherbank_vulnerable.sol` / `tests/testdata/input_contracts/reentrancy_vulnerable.sol` | **Vulnerable.** Sends ETH via `.call{value: amount}("")` **before** zeroing the caller's balance. A malicious contract's `receive()` hook can call `withdraw()` again before the balance is zeroed, draining the contract. |
-| `solidity_examples/etherbank_fixed_cei.sol` / `reentrancy_fixed_cei.sol` | **Fixed via Checks-Effects-Interactions (CEI).** Balance is zeroed **before** the external call, so a re-entrant call sees a zero balance and its `require()` reverts. |
-| `solidity_examples/etherbank_fixed_guard.sol` / `reentrancy_fixed_guard.sol` | **Fixed via a reentrancy lock** (a boolean flag set before the external call and checked on entry, modeling OpenZeppelin's `ReentrancyGuard`/`nonReentrant`), *without* reordering the state write after the call. |
+| `tests/testdata/input_contracts/reentrancy_fixed_cei.sol` | **Fixed via Checks-Effects-Interactions (CEI).** Balance is zeroed **before** the external call, so a re-entrant call sees a zero balance and its `require()` reverts. |
+| `tests/testdata/input_contracts/reentrancy_fixed_guard.sol` | **Fixed via a reentrancy lock** (a boolean flag set before the external call and checked on entry, modeling OpenZeppelin's `ReentrancyGuard`/`nonReentrant`), *without* reordering the state write after the call. |
 
 These are deliberately written with **no external imports** (no
 `hardhat/console.sol`, no `@openzeppelin/contracts`) so Mythril — which doesn't
@@ -212,7 +212,13 @@ it.
   modifier.
 - **`LogicalBank.sol`** — fixed via checks-effects-interactions (balance
   zeroed before the external send).
-- **`EtherBankMythrilVulnerable.sol`** — an additional vulnerable variant.
+- **`EtherBank_vulnerable.sol`** — a second vulnerable bank (copy of
+  `solidity_examples/hardhat_reference/EtherBank_vulnerable.sol`): sends ETH
+  with `sendValue` before zeroing the balance.
+- **`SecureContracts.sol`** — the combined fix (copy of
+  `solidity_examples/SecureContracts.sol`): an `EtherBank` protected by both
+  `nonReentrant` and checks-effects-interactions, plus `SecureCaller`, a fixed
+  version of `calls.sol` (checked call results, owner-only targets, allowlist).
 - **`Attacker.sol`** — the exploit contract. It deposits ETH into the target
   bank, calls `withdraw()`, and its `receive()` hook **re-enters** `withdraw()`
   again as long as the bank still has a balance, draining it in a loop. Once
@@ -230,7 +236,22 @@ attacker's net profit:
 | `attack_vulnerable_detailed.js` | `VulnerableBank` | Attack **succeeds** — attacker drains more than they put in |
 | `attack_guard_detailed.js` | `GuardBank` | Attack **reverts** — `nonReentrant` blocks the re-entrant call |
 | `attack_logical_detailed.js` | `LogicalBank` | Attack **reverts** — balance is already zero on re-entry, so `require()` fails |
-| `attack.js`, `attack_etherbank_vulnerable.js` | earlier/simpler variants | Same idea, less detailed output |
+| `attack_etherbank_vulnerable.js` | `EtherBank_vulnerable` | Attack **succeeds** — 20 ETH drained in four 5 ETH withdrawals |
+| `attack_secure_detailed.js` | `SecureContracts` `EtherBank` | Attack **reverts**; afterwards the honest depositor still withdraws their 15 ETH |
+| `attack.js` | earlier/simpler variant | Same idea, less detailed output |
+
+Note: the "Stolen profit" line printed by `attack_vulnerable_detailed.js`
+reads 10 ETH because it subtracts the attacker's 5 ETH deposit twice; the
+"Net wallet change" line (about 15 ETH) is the correct figure.
+
+### 5.2.1 Mythril misses reentrancy when `console.log` is present
+
+Mythril reports **no issues** for `VulnerableBank.sol` and
+`EtherBank_vulnerable.sol`, even though the attack drains both. Removing the
+`console.log` lines (and the `hardhat/console.sol` import) makes Mythril flag
+"State access after external call" on the `balances[msg.sender] = 0` line;
+raising `--execution-timeout` to 900 s does not, so it is not a timeout.
+Strip debug logging before analyzing a contract with Mythril.
 
 ### 5.3 How to run the demo
 
@@ -241,7 +262,19 @@ npx hardhat compile
 npx hardhat run scripts/attack_vulnerable_detailed.js
 npx hardhat run scripts/attack_guard_detailed.js
 npx hardhat run scripts/attack_logical_detailed.js
+npx hardhat run scripts/attack_etherbank_vulnerable.js
+npx hardhat run scripts/attack_secure_detailed.js
 ```
+
+To analyze the demo contracts with Mythril, run from `hardhat_attack_demo`
+so the OpenZeppelin v4 remappings in `solc-settings.json` apply:
+
+```bash
+myth analyze contracts/SecureContracts.sol --solv 0.8.20 --solc-json solc-settings.json --execution-timeout 120
+```
+
+`solidity_examples/solc_remap.json` does the same for
+`solidity_examples/SecureContracts.sol` when run from `solidity_examples/`.
 
 Each run spins up Hardhat's built-in local chain, deploys fresh contracts, and
 prints a before/after/net-result report to the console so you can see the
@@ -290,30 +323,27 @@ tests/
     reentrancy_fixed_cei.sol           # fixture: CEI fix (§4.1)
     reentrancy_fixed_guard.sol         # fixture: guard fix (§4.1)
 solidity_examples/
-  etherbank_vulnerable.sol             # same fixtures, example form (§4.1)
-  etherbank_fixed_cei.sol
-  etherbank_fixed_guard.sol
-  calls_fixed_guard.sol                # calls.sol with a reentrancy lock (returns still unchecked)
-  returnvalue_fixed_guard.sol          # returnvalue.sol fixed with a lock + require(success)
-  returnvalue_fixed_logical.sol        # returnvalue.sol fixed with CEI + checked return
+  etherbank_vulnerable.sol             # vulnerable fixture, example form (§4.1)
+  SecureContracts.sol                  # combined fix for the bank and calls.sol (§5.1)
+  solc_remap.json                      # OpenZeppelin v4 remapping for SecureContracts.sol
   hardhat_reference/                   # original Hardhat/OZ-flavored sources (§4.2)
     EtherBank_vulnerable.sol
-    EtherBank_fixed_cei.sol
-    EtherBank_fixed_guard.sol
     Attacker.sol
 hardhat_attack_demo/                   # standalone live-exploit demo (§5)
   contracts/
     VulnerableBank.sol
     GuardBank.sol
     LogicalBank.sol
-    EtherBankMythrilVulnerable.sol
+    EtherBank_vulnerable.sol
+    SecureContracts.sol
     Attacker.sol
   scripts/
     attack_vulnerable_detailed.js
     attack_guard_detailed.js
     attack_logical_detailed.js
-    attack.js
     attack_etherbank_vulnerable.js
+    attack_secure_detailed.js
+    attack.js
   hardhat.config.js
   package.json
 ```

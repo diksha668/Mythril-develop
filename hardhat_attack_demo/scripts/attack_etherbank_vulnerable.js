@@ -14,7 +14,7 @@ async function main() {
   console.log("Depositor:", depositor.address);
   console.log("Attacker :", attacker.address);
 
-  const Bank = await ethers.getContractFactory("contracts/EtherBankMythrilVulnerable.sol:EtherBank");
+  const Bank = await ethers.getContractFactory("contracts/EtherBank_vulnerable.sol:EtherBank");
   const bank = await Bank.deploy();
   await bank.waitForDeployment();
   const bankAddress = await bank.getAddress();

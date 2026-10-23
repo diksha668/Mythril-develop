@@ -1,10 +1,10 @@
-// Reference only: original Hardhat/OpenZeppelin version, kept as pasted.
-// Needs a Hardhat project (hardhat/console.sol, @openzeppelin/contracts) to
-// compile — Mythril does not run this file. The dependency-free equivalent
-// that Mythril actually analyzes is ../etherbank_fixed_cei.sol (see
-// tests/integration_tests/analysis_tests.py for the regression test).
+// Copy of solidity_examples/hardhat_reference/EtherBank_vulnerable.sol, used as
+// an attack target by scripts/attack_etherbank_vulnerable.js.
+// Note: Mythril does not flag the reentrancy here while the console.log calls
+// are present; the dependency-free equivalent it does flag is
+// solidity_examples/etherbank_vulnerable.sol.
 
-// LOGICAL SOLUTION TO VULNERABLE BANK SMART CONTRACT
+// VULNERABLE BANK SMART CONTRACT
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.11;
@@ -32,11 +32,8 @@ contract EtherBank{
         console.log("Attacker balance: ", balances[msg.sender]);
         console.log("");
 
-        // CHANGES MADE HERE TO PREVENT REENTRANCY ATTACK
-        uint accountBalance = balances[msg.sender];
+        payable(msg.sender).sendValue(balances[msg.sender]);
         balances[msg.sender] = 0;
-        payable(msg.sender).sendValue(accountBalance);
-
     }
 
     // check the total balance of the EtherBank contract

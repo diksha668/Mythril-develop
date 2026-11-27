@@ -1,0 +1,17 @@
+{
+  "name": "access-control-lab",
+  "version": "1.0.0",
+  "description": "Detect, exploit and fix access-control vulnerabilities (SmartBugs Curated) in a Hardhat + Mythril workflow.",
+  "scripts": {
+    "build": "hardhat compile",
+    "test": "hardhat test",
+    "demo": "hardhat run scripts/demo.js",
+    "demo:wallet03": "hardhat run scripts/demo_wallet03.js",
+    "demo:phishable": "hardhat run scripts/demo_phishable.js",
+    "mythril": "bash scripts/run_mythril.sh"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.0"
+  }
+}

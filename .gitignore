@@ -184,3 +184,6 @@ node_modules
 # Hardhat build output
 hardhat_attack_demo/artifacts
 hardhat_attack_demo/cache
+
+# Local archive (too large for GitHub)
+overflow-lab.zip

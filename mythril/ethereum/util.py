@@ -44,7 +44,17 @@ def get_solc_json(file, solc_binary="solc", solc_settings_json=None):
     :return:
     """
     if args.solc_args is None:
-        cmd = [solc_binary, "--standard-json", "--allow-paths", ".,/"]
+        allow_paths = [".", "/"]
+        if platform.system() == "Windows":
+            # "/" does not resolve to an allowed directory on Windows, so
+            # whitelist the cwd, the source file's directory and the drive root.
+            abs_file = os.path.abspath(file)
+            allow_paths += [
+                os.getcwd(),
+                os.path.dirname(abs_file),
+                os.path.splitdrive(abs_file)[0] + "\\",
+            ]
+        cmd = [solc_binary, "--standard-json", "--allow-paths", ",".join(allow_paths)]
     else:
         cmd = [solc_binary, "--standard-json"] + args.solc_args.split()
 

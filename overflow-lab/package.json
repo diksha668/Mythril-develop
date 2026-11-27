@@ -1,0 +1,21 @@
+{
+  "name": "integer-overflow-lab",
+  "version": "1.0.0",
+  "description": "Integer overflow/underflow (SWC-101) lab using SmartBugs Curated contracts, Hardhat and Mythril",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "test:attack": "hardhat test test/attack/Token.attack.test.js test/attack/TimeLock.attack.test.js test/attack/BecToken.attack.test.js",
+    "test:fix": "hardhat test test/fix/Token.fix.test.js test/fix/TimeLock.fix.test.js test/fix/BecToken.fix.test.js",
+    "attack": "hardhat run scripts/attack.js",
+    "fix": "hardhat run scripts/fix.js",
+    "demo": "node scripts/demo.js all",
+    "demo:token": "node scripts/demo.js token",
+    "demo:timelock": "node scripts/demo.js timelock",
+    "demo:bec": "node scripts/demo.js bec"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.0"
+  }
+}
